@@ -1,0 +1,13 @@
+*.o
+*.bin
+*.elf
+
+*.iso
+kernel.bin
+
+*.log
+*.tmp
+
+.vscode/
+.idea/
+*.swp
