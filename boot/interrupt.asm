@@ -69,7 +69,7 @@ isr_common_stub:
     mov fs, ax
     mov gs, ax
 
-    push esp             ; 
+    push esp             
     call isr_handler
     add esp, 4           ; clear ESP
 
