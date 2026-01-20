@@ -74,3 +74,27 @@ void kprint(const char *str) {
     }
     update_cursor(cursor_x, cursor_y);
 }
+
+void kprint_int(int n) {
+    if (n == 0) {
+        kprint("0");
+        return;
+    }
+
+    char buffer[12]; 
+    int i = 0;
+    
+    while (n > 0) {
+        buffer[i++] = (n % 10) + '0';
+        n /= 10;
+    }
+    buffer[i] = '\0';
+
+    for (int j = 0; j < i / 2; j++) {
+        char temp = buffer[j];
+        buffer[j] = buffer[i - j - 1];
+        buffer[i - j - 1] = temp;
+    }
+
+    kprint(buffer);
+}

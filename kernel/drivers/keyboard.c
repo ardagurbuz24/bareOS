@@ -1,5 +1,6 @@
 #include <io.h>
 #include <vga.h>
+#include <keyboard.h>
 
 extern int cursor_x;
 extern int cursor_y;

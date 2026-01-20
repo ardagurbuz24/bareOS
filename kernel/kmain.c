@@ -1,7 +1,9 @@
-#include<io.h>
-#include<vga.h>
-
-extern void keyboard_handler();
+#include <io.h>
+#include <vga.h>
+#include <gdt.h>
+#include <idt.h>
+#include <keyboard.h>
+#include <pic.h>
 
 void print_logo() {
         kprint("  ____                  ____   ____  \n");
@@ -14,41 +16,23 @@ void print_logo() {
 }
 
 void kmain(void) {
+    init_gdt();
+    init_idt();
+    pic_remap(0x20, 0x28);
+
+    __asm__ __volatile__("cli");
+
     clear_screen();
     enable_cursor(0, 15);
 
-    
-    char *vidptr = (char*)0xb8000;
-    const char *str = "kernel is working";
-    unsigned int i = 0;
-    unsigned int j = 0;
-
-    
-    //clear the screen
-    while(j < 80 * 25 * 2) {
-        vidptr[j] = ' ';
-        vidptr[j+1] = 0x07; 
-        j = j + 2;
-    }
-
     print_logo();
     kprint("BareOS>");
-    
 
-    while(1) {
-        if(inb(0x64) & 0x01) {
+    while (1)
+    {
+        if (inb(0x64) & 0x01) {
             keyboard_handler();
         }
     }
-
-    j = 0;
     
-    // print text on the screen
-    while(str[i] != '\0') {
-        vidptr[j] = str[i];
-        vidptr[j+1] = 0x0A; // 0x0A: neon green on black
-        i++;
-        j = j + 2;
-    }
-    return;
 }
