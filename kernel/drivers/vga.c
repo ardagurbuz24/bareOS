@@ -1,100 +1,68 @@
-#include "io.h"
+#include <vga.h>
+#include <io.h>
+#include <stdint.h>
 
-int cursor_x = 0;
-int cursor_y = 0;
+static uint16_t* const VIDEO_ADDRESS = (uint16_t*)0xB8000;
+static const uint8_t DEFAULT_COLOR = 0x0F; 
 
-void update_cursor(int x, int y) {
-    unsigned short pos = y * 80 + x;
-
-    outb(0x3D4, 0x0F);
-    outb(0x3D5, (unsigned char)(pos & 0xFF));
-    
-    outb(0x3D4, 0x0E);
-    outb(0x3D5, (unsigned char)((pos >> 8) & 0xFF));
+int get_cursor_offset() {
+    outb(0x3D4, 14);
+    int offset = inb(0x3D5) << 8;
+    outb(0x3D4, 15);
+    offset += inb(0x3D5);
+    return offset * 2;
 }
 
-void enable_cursor(unsigned char cursor_start, unsigned char cursor_end) {
-    outb(0x3D4, 0x0A);
-    outb(0x3D5, (inb(0x3D5) & 0xC0) | cursor_start);
- 
-    outb(0x3D4, 0x0B);
-    outb(0x3D5, (inb(0x3D5) & 0xE0) | cursor_end);
+void set_cursor_offset(int offset) {
+    offset /= 2; 
+    outb(0x3D4, 14);
+    outb(0x3D5, (uint8_t)(offset >> 8));
+    outb(0x3D4, 15);
+    outb(0x3D5, (uint8_t)(offset & 0xFF));
 }
+
 
 void clear_screen() {
-    char *vidptr = (char*)0xb8000;
-    unsigned int i = 0;
-
-    while (i < 80 * 25 * 2) {
-        vidptr[i] = ' ';       
-        vidptr[i + 1] = 0x07;  
-        i = i + 2;
+    for (int i = 0; i < 80 * 25; i++) {
+        VIDEO_ADDRESS[i] = (DEFAULT_COLOR << 8) | ' ';
     }
-
-    cursor_x = 0;
-    cursor_y = 0;
-
-    update_cursor(cursor_x, cursor_y);
+    set_cursor_offset(0);
 }
 
-void scroll() {
-    char *vidptr = (char*)0xb8000;
-    for (int i = 0; i < 24 * 80 * 2; i++) {
-        vidptr[i] = vidptr[i + 160];
-    }
-
-    for (int i = 24 * 80 * 2; i < 25 * 80 * 2; i += 2) {
-        vidptr[i] = ' ';
-        vidptr[i + 1] = 0x07;
-    }
-}
-
-void kprint(const char *str) {
-    for (int i = 0; str[i] != '\0'; i++) {
-        
-        if (str[i] == '\n') {
-            cursor_x = 0;
-            cursor_y++;
+void kprint(char* message) {
+    int offset = get_cursor_offset();
+    int i = 0;
+    while (message[i] != 0) {
+        if (message[i] == '\n') {
+            offset = (offset / 160 + 1) * 160;
         } else {
-            int offset = (cursor_y * 80 + cursor_x) * 2;
-            char *vidptr = (char*)0xb8000;
-            vidptr[offset] = str[i];
-            vidptr[offset + 1] = 0x07; 
-            cursor_x++;
+            VIDEO_ADDRESS[offset / 2] = (DEFAULT_COLOR << 8) | message[i];
+            offset += 2;
         }
-
-        if (cursor_x >= 80) {
-            cursor_x = 0;
-            cursor_y++;
-        }
-        if (cursor_y >= 25) {
-            scroll();
-            cursor_y = 24;
-        }
+        i++;
     }
-    update_cursor(cursor_x, cursor_y);
+    set_cursor_offset(offset); 
+}
+
+
+void kprint_backspace() {
+    int offset = get_cursor_offset() - 2; 
+    
+    if (offset < 0) return;
+
+    VIDEO_ADDRESS[offset / 2] = (DEFAULT_COLOR << 8) | ' ';
+    
+    set_cursor_offset(offset);
 }
 
 void kprint_int(int n) {
-    if (n == 0) {
-        kprint("0");
-        return;
-    }
-
-    char buffer[12]; 
-    int i = 0;
-    
+    if (n == 0) { kprint("0"); return; }
+    char buffer[12];
+    int i = 10;
+    buffer[11] = '\0';
     while (n > 0) {
-        buffer[i++] = (n % 10) + '0';
+        buffer[i--] = (n % 10) + '0';
         n /= 10;
     }
-    buffer[i] = '\0';
-
-    for (int j = 0; j < i / 2; j++) {
-        char temp = buffer[j];
-        buffer[j] = buffer[i - j - 1];
-        buffer[i - j - 1] = temp;
-    }
-
-    kprint(buffer);
+    kprint(&buffer[i + 1]);
 }

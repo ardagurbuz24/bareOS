@@ -10,6 +10,9 @@ extern void isr20(); extern void isr21(); extern void isr22(); extern void isr23
 extern void isr24(); extern void isr25(); extern void isr26(); extern void isr27();
 extern void isr28(); extern void isr29(); extern void isr30(); extern void isr31();
 
+extern void irq0();
+extern void irq1();
+
 extern void idt_flush(uint32_t);
 
 idt_entry_t idt_entries[256];
@@ -63,6 +66,9 @@ void init_idt() {
     idt_set_gate(29, (uint32_t)isr29, 0x08, 0x8E);
     idt_set_gate(30, (uint32_t)isr30, 0x08, 0x8E);
     idt_set_gate(31, (uint32_t)isr31, 0x08, 0x8E);
+    
+    idt_set_gate(32, (uint32_t)irq0, 0x08, 0x8E);
+    idt_set_gate(33, (uint32_t)irq0, 0x08, 0x8E);
 
     idt_flush((uint32_t)&idt_ptr);
 }

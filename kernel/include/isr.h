@@ -12,5 +12,6 @@ typedef struct {
 } __attribute__((packed)) registers_t;
 
 void isr_handler(registers_t *regs);
+void irq_handler(registers_t *regs);
 
 #endif

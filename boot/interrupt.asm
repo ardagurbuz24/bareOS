@@ -1,6 +1,7 @@
 [BITS 32]
 ALIGN 4
 [EXTERN isr_handler]
+[EXTERN irq_handler]
 
 %macro ISR_NOERRCODE 1
   [GLOBAL isr%1]
@@ -17,6 +18,15 @@ ALIGN 4
     cli              
     push byte %1     
     jmp isr_common_stub
+%endmacro
+
+%macro IRQ 2
+  [GLOBAL irq%1]
+  irq%1:
+    cli
+    push byte 0
+    push byte %2
+    jmp irq_common_stub
 %endmacro
 
 
@@ -55,6 +65,8 @@ ISR_NOERRCODE 29  ; Reserved
 ISR_NOERRCODE 30  ; Reserved
 ISR_NOERRCODE 31  ; Reserved
 
+IRQ 0, 32    ; Timer
+IRQ 1, 33    ; Keyboard
 
 [GLOBAL isr_common_stub]
 isr_common_stub:
@@ -81,4 +93,30 @@ isr_common_stub:
     
     popa
     add esp, 8           
+    iret
+
+irq_common_stub:
+    pusha
+
+    mov ax, ds
+    push eax
+
+    mov ax, 0x10
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+
+    push esp
+    call irq_handler
+    add esp, 4
+
+    pop eax
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    
+    popa
+    add esp, 8
     iret
