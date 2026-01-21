@@ -1,9 +1,12 @@
 #include <vga.h>
 #include <io.h>
+#include <util.h>
 #include <stdint.h>
 
 static uint16_t* const VIDEO_ADDRESS = (uint16_t*)0xB8000;
 static const uint8_t DEFAULT_COLOR = 0x0F; 
+static const int MAX_ROWS = 25;
+static const int MAX_COLS = 80;
 
 int get_cursor_offset() {
     outb(0x3D4, 14);
@@ -29,10 +32,25 @@ void clear_screen() {
     set_cursor_offset(0);
 }
 
+void scroll() {
+    for (int i = 0; i < (MAX_ROWS - 1) * MAX_COLS; i++) {
+        VIDEO_ADDRESS[i] = VIDEO_ADDRESS[i + MAX_COLS];
+    }
+
+    for(int i = (MAX_ROWS - 1) * MAX_COLS; i < MAX_ROWS * MAX_COLS; i++) {
+        VIDEO_ADDRESS[i] = (DEFAULT_COLOR << 8) | ' ';
+    }
+}
+
 void kprint(char* message) {
     int offset = get_cursor_offset();
     int i = 0;
     while (message[i] != 0) {
+        if (offset >= MAX_ROWS * MAX_COLS *2) {
+            scroll();
+            offset -= MAX_COLS * 2;
+        }
+
         if (message[i] == '\n') {
             offset = (offset / 160 + 1) * 160;
         } else {
@@ -56,13 +74,7 @@ void kprint_backspace() {
 }
 
 void kprint_int(int n) {
-    if (n == 0) { kprint("0"); return; }
-    char buffer[12];
-    int i = 10;
-    buffer[11] = '\0';
-    while (n > 0) {
-        buffer[i--] = (n % 10) + '0';
-        n /= 10;
-    }
-    kprint(&buffer[i + 1]);
+    char str[12];
+    int_to_ascii(n, str);
+    kprint(str);
 }

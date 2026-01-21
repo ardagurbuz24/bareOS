@@ -2,5 +2,6 @@
 #define KEYBOARD_H
 
 extern void keyboard_handler();
+void init_keyboard();
 
 #endif

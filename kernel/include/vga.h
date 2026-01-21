@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-void scroll();
 void clear_screen();
+void scroll();
 void kprint(char* message);
 void kprint_int(int n);
 void set_cursor_offset(int offset);

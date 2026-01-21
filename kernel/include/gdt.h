@@ -22,5 +22,6 @@ typedef struct gdt_entry_struct gdt_entry_t;
 typedef struct gdt_ptr_struct gdt_ptr_t;
 
 void init_gdt();
+void gdt_install();
 
 #endif

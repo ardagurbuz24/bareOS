@@ -5,21 +5,10 @@
 #include <keyboard.h>
 #include <pic.h>
 #include <stdint.h>
-#include<util.h>
-
-int strcmp(char s1[], char s2[]) {
-    int i;
-    for (i = 0; s1[i] == s2[i]; i++) {
-        if (s1[i] == '\0') return 0;
-    }
-    return s1[i] - s2[i];
-}
-
-int strlen(char s[]) {
-    int i = 0;
-    while (s[i] != '\0') ++i;
-    return i;
-}
+#include <util.h>
+#include <timer.h>
+#include <isr.h>
+#include <multiboot.h>
 
 void print_logo() {
         kprint("  ____                  ____   ____  \n");
@@ -27,41 +16,38 @@ void print_logo() {
         kprint(" |  _ \\ / _` | '__/ _ \\ |  | |\\___ \\ \n");
         kprint(" | |_) | (_| | | |  __/ |__| | ___) |\n");
         kprint(" |____/ \\__,_|_|  \\___|\\____/ |____/ \n");
-        kprint(" ------------------------------------ \n");
-        kprint("       BareOS v0.1 - Arda Gurbuz      \n\n");
+        kprint("------------------------------------ \n");
+        kprint("       BareOS v0.2 - Arda Gurbuz      \n\n");
 }
 
-void kmain(void) {
-    init_gdt();
-    init_idt();
-    pic_remap(0x20, 0x28);
+multiboot_info_t* global_mbi;
 
-    __asm__ __volatile__("sti");
-
+void kmain(multiboot_info_t* mbi, uint32_t magic) {
     clear_screen();
-
+    kprint("BareOS v0.2 is booting...\n");
+    kprint("--------------------------\n");
     print_logo();
-    kprint("BareOS>");
 
-    while (1)
-    {
-        if (inb(0x64) & 0x01) {
-             keyboard_handler();
-        }
-    }
-    
-}
+    global_mbi = mbi;
 
-void interpret_command(char* input) {
-    if (strcmp(input, "help") == 0) {
-        kprint("Available commands: help, clear, version\n");
-    } else if (strcmp(input, "clear") == 0) {
-        clear_screen();
-    } else if (strcmp(input, "version") == 0) {
-        kprint("BareOS v0.1 - Arda Gurbuz\n");
-    } else if (strlen(input) > 0) {
-        kprint("Unknown command: ");
-        kprint(input);
-        kprint("\n");
+    kprint("Initializing GDT and IDT...\n");
+    isr_install(); 
+
+    pic_remap(0x20, 0x28);
+    init_keyboard();
+
+    kprint("BareOS v0.2 Memory Management Ready.\n");
+
+    kprint("Starting PIT Timer (100Hz)...\n");
+    init_timer(100);
+
+    kprint("Enabling hardware interrupts...\n");
+    asm volatile("sti");
+
+    kprint("System ready. Type 'help' for commands.\n");
+    kprint("> ");
+
+    while(1) {
+        asm volatile("hlt");
     }
 }
